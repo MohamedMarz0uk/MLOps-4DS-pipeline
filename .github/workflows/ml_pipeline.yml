@@ -2,7 +2,7 @@ name: ML Pipeline
 
 on:
   push:
-    branches: [ master ]  # ou main si ta branche principale s'appelle main
+    branches: [ master ]   # change en [ main ] si tu renommes ta branche
   pull_request:
     branches: [ master ]
 
@@ -12,36 +12,18 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Prepare data
-        run: |
-          source venv/bin/activate
-          python main.py --prepare
+      - name: Run full pipeline
+        run: python main.py
 
-      - name: Train model
-        run: |
-          source venv/bin/activate
-          python main.py --train
-
-      - name: Evaluate model
-        run: |
-          source venv/bin/activate
-          python main.py --evaluate
-
-      - name: Predict
-        run: |
-          source venv/bin/activate
-          python main.py --predict
