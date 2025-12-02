@@ -4,10 +4,37 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-from sklearn.linear_model import LogisticRegression  # ⬅️ ICI changement
+from sklearn.linear_model import LogisticRegression
 import warnings
 import pickle
 import os
+
+import logging
+import json
+from datetime import datetime
+import threading
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
+MODELS_DIR = "models"
+os.makedirs(MODELS_DIR, exist_ok=True)
+METADATA_PATH = os.path.join(MODELS_DIR, "metadata.json")
+
+
+def _write_metadata(meta: dict):
+    with open(METADATA_PATH, "w") as f:
+        json.dump(meta, f, indent=2)
+
+
+def _read_metadata():
+    if not os.path.exists(METADATA_PATH):
+        return {}
+    with open(METADATA_PATH, "r") as f:
+        return json.load(f)
+
 
 warnings.filterwarnings("ignore")
 
@@ -144,7 +171,7 @@ def prepare_data(train_path, test_path):
     train = pd.read_csv(train_path)
     test = pd.read_csv(test_path)
 
-    print(f"Train shape: {train.shape}, Test shape: {test.shape}")
+    logger.info(f"Train shape: {train.shape}, Test shape: {test.shape}")
 
     train_processed = preprocess_data(train, is_train=True)
     test_processed = preprocess_data(test, is_train=False)
@@ -170,9 +197,7 @@ def prepare_data(train_path, test_path):
     }
 
 
-# ----------------------------
 # Modèle
-# ----------------------------
 
 
 def train_model(X_train, y_train):
@@ -188,7 +213,7 @@ def train_model(X_train, y_train):
     """
     model = LogisticRegression(random_state=42, max_iter=1000, solver="lbfgs")
     model.fit(X_train, y_train)
-    print("Modèle de Régression Logistique entraîné avec succès")
+    logger.info("Modèle de Régression Logistique entraîné avec succès")
     return model
 
 
@@ -206,9 +231,9 @@ def evaluate_model(model, X_test, y_test):
     """
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
-    print(f"Accuracy du modèle: {accuracy:.4f}")
-    print(f"Prédictions correctes: {np.sum(y_test == y_pred)}")
-    print(f"Prédictions incorrectes: {np.sum(y_test != y_pred)}")
+    logger.info(f"Accuracy du modèle: {accuracy:.4f}")
+    logger.info(f"Prédictions correctes: {np.sum(y_test == y_pred)}")
+    logger.info(f"Prédictions incorrectes: {np.sum(y_test != y_pred)}")
     return {"accuracy": accuracy, "predictions": y_pred, "actual": y_test}
 
 
@@ -226,14 +251,15 @@ def predict(model, X_data):
     return model.predict(X_data)
 
 
+"""
 def save_model(model, file_path):
-    """
+    
     Sauvegarder le modèle et les paramètres de preprocessing.
 
     Args:
         model: Modèle entraîné
         file_path (str): Chemin du fichier de sauvegarde
-    """
+    
     with open(file_path, "wb") as f:
         pickle.dump(
             {
@@ -243,11 +269,54 @@ def save_model(model, file_path):
             },
             f,
         )
-    print(f"Modèle sauvegardé dans: {file_path}")
+    logger.info(f"Modèle sauvegardé dans: {file_path}")
+"""
 
 
-def load_model(file_path):
+def save_model(model, file_path=None, keep_timestamp=True, metrics: dict | None = None):
     """
+    Sauvegarde le modèle avec versioning. Si keep_timestamp True => models/model_YYYYMMDD_HHMMSS.pkl
+    Met à jour metadata.json qui stocke le meilleur model_path et ses metrics.
+    """
+    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    if file_path is None:
+        file_path = os.path.join(MODELS_DIR, f"model_{ts}.pkl")
+    else:
+        if keep_timestamp:
+            base = os.path.splitext(file_path)[0]
+            file_path = os.path.join(MODELS_DIR, f"{base}_{ts}.pkl")
+    with open(file_path, "wb") as f:
+        pickle.dump(
+            {
+                "model": model,
+                "preprocessing_params": preprocessing_params,
+                "target_encoder": target_encoder,
+            },
+            f,
+        )
+    logger.info(f"Modèle sauvegardé dans: {file_path}")
+
+    # mettre à jour metadata (n'ajuste "best" ici QUE si metrics est donné)
+    meta = _read_metadata()
+    if metrics is not None:
+        # si aucune métrique sauvegardée, on prend celui-ci comme best
+        best_acc = meta.get("best_accuracy", -1)
+        if metrics.get("accuracy", -1) >= best_acc:
+            meta.update(
+                {
+                    "best_model_path": file_path,
+                    "best_accuracy": metrics.get("accuracy"),
+                    "best_timestamp": ts,
+                }
+            )
+            _write_metadata(meta)
+            logger.info(f"Metadata mise à jour : meilleur modèle -> {file_path}")
+    return file_path
+
+
+"""
+def load_model(file_path):
+    
     Charger un modèle sauvegardé ainsi que les paramètres de preprocessing.
 
     Args:
@@ -255,13 +324,33 @@ def load_model(file_path):
 
     Returns:
         Modèle chargé
-    """
+    
     with open(file_path, "rb") as f:
         saved_data = pickle.load(f)
     global preprocessing_params, target_encoder
     preprocessing_params = saved_data["preprocessing_params"]
     target_encoder = saved_data["target_encoder"]
-    print(f"Modèle chargé depuis: {file_path}")
+    logger.info(f"Modèle chargé depuis: {file_path}")
+    return saved_data["model"]
+"""
+
+
+def load_model(file_path=None):
+    """
+    Si file_path None -> charge best_model_path depuis metadata, sinon charge explicitement.
+    Retourne le model et met à jour preprocessing_params et target_encoder.
+    """
+    if file_path is None:
+        meta = _read_metadata()
+        file_path = meta.get("best_model_path")
+        if file_path is None:
+            raise FileNotFoundError("Aucun modèle trouvé dans metadata.")
+    with open(file_path, "rb") as f:
+        saved_data = pickle.load(f)
+    global preprocessing_params, target_encoder
+    preprocessing_params = saved_data.get("preprocessing_params", {})
+    target_encoder = saved_data.get("target_encoder", {"Y": 1, "N": 0})
+    logger.info(f"Modèle chargé depuis: {file_path}")
     return saved_data["model"]
 
 
@@ -284,5 +373,11 @@ def create_submission(predictions, test_ids, file_name="submission.csv"):
         }
     )
     submission.to_csv(file_name, index=False)
-    print(f"Fichier de soumission créé : {file_name}")
+    logger.info(f"Fichier de soumission créé : {file_name}")
     return submission
+
+
+def retrain_model(X_train, y_train, C=1.0, max_iter=100):
+    model = LogisticRegression(C=C, max_iter=max_iter)
+    model.fit(X_train, y_train)
+    return model

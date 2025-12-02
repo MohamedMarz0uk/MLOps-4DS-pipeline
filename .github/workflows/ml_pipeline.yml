@@ -2,7 +2,7 @@ name: ML Pipeline
 
 on:
   push:
-    branches: [ master ]   # change en [ main ] si tu renommes ta branche
+    branches: [ master ]  
   pull_request:
     branches: [ master ]
 

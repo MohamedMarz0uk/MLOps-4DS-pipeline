@@ -12,3 +12,5 @@ flake8
 black
 mypy
 watchdog
+isort
+bandit

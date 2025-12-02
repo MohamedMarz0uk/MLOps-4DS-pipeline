@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Result | AI Loan Predictor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .result-icon {
+            font-size: 6rem;
+            margin-bottom: 30px;
+            animation: scaleIn 0.6s ease;
+        }
+
+        .result-text {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            animation: fadeIn 0.8s ease 0.3s both;
+        }
+
+        .result-approved {
+            color: #4ade80;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+        }
+
+        .result-rejected {
+            color: #f87171;
+            text-shadow: 0 0 20px rgba(248, 113, 113, 0.5);
+        }
+
+        .result-description {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            animation: fadeIn 0.8s ease 0.5s both;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+            animation: fadeIn 0.8s ease 0.7s both;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .btn {
+            padding: 16px 40px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            display: inline-block;
+            animation: fadeIn 0.8s ease 0.9s both;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+            margin-right: 15px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-success {
+            background: rgba(74, 222, 128, 0.2);
+            border: 2px solid #4ade80;
+            color: #4ade80;
+        }
+
+        .badge-danger {
+            background: rgba(248, 113, 113, 0.2);
+            border: 2px solid #f87171;
+            color: #f87171;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                padding: 40px 25px;
+            }
+
+            .result-text {
+                font-size: 2rem;
+            }
+
+            .result-icon {
+                font-size: 4rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .btn-primary {
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            {% if result == "Approved" %}
+                <div class="result-icon">✅</div>
+                <div class="result-text result-approved">Loan Approved!</div>
+                <div class="result-description">
+                    Congratulations! Based on the Logistic Regression machine learning analysis, the applicant meets all requirements for loan approval.
+                </div>
+                <div class="badge badge-success">AI Prediction: Approved</div>
+            {% else %}
+                <div class="result-icon">❌</div>
+                <div class="result-text result-rejected">Loan Rejected</div>
+                <div class="result-description">
+                    Unfortunately, based on the Logistic Regression machine learning analysis, the applicant does not meet the required criteria for loan approval at this time.
+                </div>
+                <div class="badge badge-danger">AI Prediction: Rejected</div>
+            {% endif %}
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Loan ID</div>
+                    <div class="stat-value">{{ loan_id }}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Model Used</div>
+                    <div class="stat-value">LR</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Algorithm</div>
+                    <div class="stat-value">LBFGS</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Confidence</div>
+                    <div class="stat-value">High</div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <a href="/" class="btn btn-primary">🏠 New Prediction</a>
+                <a href="/retrain" class="btn btn-secondary">⚙️ Retrain Model</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
