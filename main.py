@@ -24,6 +24,8 @@ def main():
     
     mlflow.set_experiment("loan_prediction_experiment")
     
+    os.environ["MLFLOW_ARTIFACT_URI"] = "./mlruns/artifacts"
+    
     # Démarrer un run MLflow
     with mlflow.start_run(run_name="loan_prediction_baseline") as run:
         print(f"MLflow Run ID: {run.info.run_id}")
