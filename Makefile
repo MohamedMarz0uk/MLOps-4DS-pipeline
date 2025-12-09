@@ -76,3 +76,12 @@ deploy:
 
 flask:
 	FLASK_APP=flask_app.py FLASK_ENV=development $(PYTHON) -m flask run --host=0.0.0.0 --port=5000
+
+mlflow-ui:
+	@echo "Démarrage de MLflow UI sur 0.0.0.0:4000 avec SQLite..."
+	mlflow ui --backend-store-uri sqlite:///mlflow.db --host 0.0.0.0 --port 4000 &
+
+mlflow-stop:
+	@echo "Arrêt de MLflow..."
+	@pkill -f "mlflow ui" || echo "MLflow n'était pas en cours d'exécution"
+	@echo "✓ MLflow arrêté"

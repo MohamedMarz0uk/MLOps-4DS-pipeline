@@ -3,7 +3,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.linear_model import LogisticRegression
 import warnings
 import pickle
@@ -14,6 +14,11 @@ import json
 from datetime import datetime
 import threading
 
+# MLflow imports
+import mlflow
+import mlflow.sklearn
+from mlflow.models import infer_signature
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -22,6 +27,10 @@ logging.basicConfig(
 MODELS_DIR = "models"
 os.makedirs(MODELS_DIR, exist_ok=True)
 METADATA_PATH = os.path.join(MODELS_DIR, "metadata.json")
+
+# Configuration MLflow
+mlflow.set_tracking_uri("file:./mlruns")  # Répertoire local pour les runs
+mlflow.set_experiment("loan_prediction")  # Nom de l'expérience
 
 
 def _write_metadata(meta: dict):
@@ -200,18 +209,30 @@ def prepare_data(train_path, test_path):
 # Modèle
 
 
-def train_model(X_train, y_train):
+def train_model(X_train, y_train, C=1.0, max_iter=1000, solver="lbfgs"):
     """
     Entraîner un modèle de Régression Logistique sur les données d'entraînement.
+    Enregistre automatiquement les paramètres et métriques dans MLflow.
 
     Args:
         X_train (pd.DataFrame): Features d'entraînement
         y_train (pd.Series): Labels d'entraînement
+        C (float): Inverse de la force de régularisation
+        max_iter (int): Nombre maximum d'itérations
+        solver (str): Algorithme d'optimisation
 
     Returns:
         LogisticRegression: Modèle entraîné
     """
-    model = LogisticRegression(random_state=42, max_iter=1000, solver="lbfgs")
+    # Log des paramètres dans MLflow
+    mlflow.log_param("C", C)
+    mlflow.log_param("max_iter", max_iter)
+    mlflow.log_param("solver", solver)
+    mlflow.log_param("random_state", 42)
+    mlflow.log_param("n_features", X_train.shape[1])
+    mlflow.log_param("n_samples", X_train.shape[0])
+    
+    model = LogisticRegression(random_state=42, max_iter=max_iter, solver=solver, C=C)
     model.fit(X_train, y_train)
     logger.info("Modèle de Régression Logistique entraîné avec succès")
     return model
@@ -220,6 +241,7 @@ def train_model(X_train, y_train):
 def evaluate_model(model, X_test, y_test):
     """
     Évaluer les performances du modèle sur les données de test.
+    Enregistre automatiquement les métriques dans MLflow.
 
     Args:
         model: Modèle entraîné
@@ -230,11 +252,46 @@ def evaluate_model(model, X_test, y_test):
         dict: Contient l'accuracy, les prédictions et les labels réels
     """
     y_pred = model.predict(X_test)
+    
+    # Calcul des métriques
     accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, zero_division=0)
+    recall = recall_score(y_test, y_pred, zero_division=0)
+    f1 = f1_score(y_test, y_pred, zero_division=0)
+    
+    # Log des métriques dans MLflow
+    mlflow.log_metric("accuracy", accuracy)
+    mlflow.log_metric("precision", precision)
+    mlflow.log_metric("recall", recall)
+    mlflow.log_metric("f1_score", f1)
+    mlflow.log_metric("correct_predictions", np.sum(y_test == y_pred))
+    mlflow.log_metric("incorrect_predictions", np.sum(y_test != y_pred))
+    
     logger.info(f"Accuracy du modèle: {accuracy:.4f}")
-    logger.info(f"Prédictions correctes: {np.sum(y_test == y_pred)}")
-    logger.info(f"Prédictions incorrectes: {np.sum(y_test != y_pred)}")
-    return {"accuracy": accuracy, "predictions": y_pred, "actual": y_test}
+    logger.info(f"Precision: {precision:.4f}")
+    logger.info(f"Recall: {recall:.4f}")
+    logger.info(f"F1-Score: {f1:.4f}")
+    
+    # Créer et sauvegarder la matrice de confusion
+    cm = confusion_matrix(y_test, y_pred)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Actual')
+    ax.set_title('Confusion Matrix')
+    
+    # Sauvegarder la figure dans MLflow
+    mlflow.log_figure(fig, "confusion_matrix.png")
+    plt.close()
+    
+    return {
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1_score": f1,
+        "predictions": y_pred,
+        "actual": y_test
+    }
 
 
 def predict(model, X_data):
@@ -251,32 +308,36 @@ def predict(model, X_data):
     return model.predict(X_data)
 
 
-"""
-def save_model(model, file_path):
-    
-    Sauvegarder le modèle et les paramètres de preprocessing.
+def save_model_mlflow(model, X_train, artifact_path="model"):
+    """
+    Sauvegarder le modèle dans MLflow avec signature.
 
     Args:
         model: Modèle entraîné
-        file_path (str): Chemin du fichier de sauvegarde
+        X_train: Données d'entraînement pour inférer la signature
+        artifact_path: Chemin dans MLflow pour sauvegarder le modèle
+
+    Returns:
+        str: URI du modèle dans MLflow
+    """
+    # Inférer la signature du modèle
+    signature = infer_signature(X_train, model.predict(X_train))
     
-    with open(file_path, "wb") as f:
-        pickle.dump(
-            {
-                "model": model,
-                "preprocessing_params": preprocessing_params,
-                "target_encoder": target_encoder,
-            },
-            f,
-        )
-    logger.info(f"Modèle sauvegardé dans: {file_path}")
-"""
+    # Log du modèle dans MLflow
+    model_info = mlflow.sklearn.log_model(
+        sk_model=model,
+        artifact_path=artifact_path,
+        signature=signature,
+        registered_model_name="loan_prediction_model"
+    )
+    
+    logger.info(f"Modèle enregistré dans MLflow: {model_info.model_uri}")
+    return model_info.model_uri
 
 
 def save_model(model, file_path=None, keep_timestamp=True, metrics: dict | None = None):
     """
-    Sauvegarde le modèle avec versioning. Si keep_timestamp True => models/model_YYYYMMDD_HHMMSS.pkl
-    Met à jour metadata.json qui stocke le meilleur model_path et ses metrics.
+    Sauvegarde le modèle avec versioning (ancienne méthode pickle).
     """
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     if file_path is None:
@@ -296,10 +357,11 @@ def save_model(model, file_path=None, keep_timestamp=True, metrics: dict | None 
         )
     logger.info(f"Modèle sauvegardé dans: {file_path}")
 
-    # mettre à jour metadata (n'ajuste "best" ici QUE si metrics est donné)
+    # Log du fichier pickle dans MLflow aussi
+    mlflow.log_artifact(file_path, "pickle_models")
+
     meta = _read_metadata()
     if metrics is not None:
-        # si aucune métrique sauvegardée, on prend celui-ci comme best
         best_acc = meta.get("best_accuracy", -1)
         if metrics.get("accuracy", -1) >= best_acc:
             meta.update(
@@ -314,31 +376,9 @@ def save_model(model, file_path=None, keep_timestamp=True, metrics: dict | None 
     return file_path
 
 
-"""
-def load_model(file_path):
-    
-    Charger un modèle sauvegardé ainsi que les paramètres de preprocessing.
-
-    Args:
-        file_path (str): Chemin du fichier sauvegardé
-
-    Returns:
-        Modèle chargé
-    
-    with open(file_path, "rb") as f:
-        saved_data = pickle.load(f)
-    global preprocessing_params, target_encoder
-    preprocessing_params = saved_data["preprocessing_params"]
-    target_encoder = saved_data["target_encoder"]
-    logger.info(f"Modèle chargé depuis: {file_path}")
-    return saved_data["model"]
-"""
-
-
 def load_model(file_path=None):
     """
     Si file_path None -> charge best_model_path depuis metadata, sinon charge explicitement.
-    Retourne le model et met à jour preprocessing_params et target_encoder.
     """
     if file_path is None:
         meta = _read_metadata()
@@ -352,6 +392,30 @@ def load_model(file_path=None):
     target_encoder = saved_data.get("target_encoder", {"Y": 1, "N": 0})
     logger.info(f"Modèle chargé depuis: {file_path}")
     return saved_data["model"]
+
+
+def load_model_from_mlflow(model_name="loan_prediction_model", version=None, stage=None):
+    """
+    Charger un modèle depuis MLflow Registry.
+
+    Args:
+        model_name (str): Nom du modèle enregistré
+        version (int, optional): Version spécifique du modèle
+        stage (str, optional): Stage du modèle (Staging, Production, etc.)
+
+    Returns:
+        Modèle chargé depuis MLflow
+    """
+    if version:
+        model_uri = f"models:/{model_name}/{version}"
+    elif stage:
+        model_uri = f"models:/{model_name}/{stage}"
+    else:
+        model_uri = f"models:/{model_name}/latest"
+    
+    model = mlflow.sklearn.load_model(model_uri)
+    logger.info(f"Modèle chargé depuis MLflow: {model_uri}")
+    return model
 
 
 def create_submission(predictions, test_ids, file_name="submission.csv"):
@@ -373,11 +437,18 @@ def create_submission(predictions, test_ids, file_name="submission.csv"):
         }
     )
     submission.to_csv(file_name, index=False)
+    
+    # Log du fichier de soumission dans MLflow
+    mlflow.log_artifact(file_name, "predictions")
+    
     logger.info(f"Fichier de soumission créé : {file_name}")
     return submission
 
 
 def retrain_model(X_train, y_train, C=1.0, max_iter=100):
-    model = LogisticRegression(C=C, max_iter=max_iter)
+    """
+    Réentraîner le modèle avec de nouveaux hyperparamètres.
+    """
+    model = LogisticRegression(C=C, max_iter=max_iter, random_state=42)
     model.fit(X_train, y_train)
     return model

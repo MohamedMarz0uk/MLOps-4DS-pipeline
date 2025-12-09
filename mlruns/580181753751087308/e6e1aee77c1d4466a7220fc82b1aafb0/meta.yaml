@@ -1,0 +1,14 @@
+artifact_uri: file:///home/mohamed/mohamed-4ds8-ml_project/mlruns/580181753751087308/e6e1aee77c1d4466a7220fc82b1aafb0/artifacts
+end_time: 1764689389843
+entry_point_name: ''
+experiment_id: '580181753751087308'
+lifecycle_stage: active
+run_id: e6e1aee77c1d4466a7220fc82b1aafb0
+run_name: loan_prediction_baseline
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764689385947
+status: 3
+tags: []
+user_id: mohamed

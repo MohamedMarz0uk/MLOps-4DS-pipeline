@@ -1,0 +1,15 @@
+creation_timestamp: 1764689389781
+current_stage: None
+deployment_job_state: null
+description: null
+last_updated_timestamp: 1764689389781
+model_id: m-aab5622d0fba48779d5ea4bf281d9e35
+name: loan_prediction_model
+run_id: e6e1aee77c1d4466a7220fc82b1aafb0
+run_link: null
+source: models:/m-aab5622d0fba48779d5ea4bf281d9e35
+status: READY
+status_message: null
+storage_location: file:///home/mohamed/mohamed-4ds8-ml_project/mlruns/580181753751087308/models/m-aab5622d0fba48779d5ea4bf281d9e35/artifacts
+user_id: null
+version: 4

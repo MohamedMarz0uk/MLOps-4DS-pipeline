@@ -1,0 +1,14 @@
+artifact_uri: file:///home/mohamed/mohamed-4ds8-ml_project/mlruns/580181753751087308/b483de8fbe3c43088844f2826bafd8ba/artifacts
+end_time: 1764873896421
+entry_point_name: ''
+experiment_id: '580181753751087308'
+lifecycle_stage: active
+run_id: b483de8fbe3c43088844f2826bafd8ba
+run_name: dapper-trout-416
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764873895730
+status: 3
+tags: []
+user_id: mohamed

@@ -1,0 +1,10 @@
+artifact_location: file:///home/mohamed/mohamed-4ds8-ml_project/mlruns/580181753751087308/models/m-899a73b4b9b8449ab7ef9bbc1e093d03/artifacts
+creation_timestamp: 1764689367045
+experiment_id: '580181753751087308'
+last_updated_timestamp: 1764689370065
+model_id: m-899a73b4b9b8449ab7ef9bbc1e093d03
+model_type: null
+name: model
+source_run_id: e674ee1b300644dfbfee81eac62f2529
+status: 2
+status_message: null
