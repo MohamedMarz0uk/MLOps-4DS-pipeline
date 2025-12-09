@@ -1,0 +1,7 @@
+mlruns/
+models/
+logs/
+venv/
+__pycache__/
+*.pkl
+*.db
