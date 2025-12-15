@@ -28,10 +28,6 @@ MODELS_DIR = "models"
 os.makedirs(MODELS_DIR, exist_ok=True)
 METADATA_PATH = os.path.join(MODELS_DIR, "metadata.json")
 
-# Configuration MLflow
-#mlflow.set_tracking_uri("file:./mlruns")  # Répertoire local pour les runs
-#mlflow.set_experiment("loan_prediction")  # Nom de l'expérience
-
 
 def _write_metadata(meta: dict):
     with open(METADATA_PATH, "w") as f:

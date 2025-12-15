@@ -85,3 +85,27 @@ mlflow-stop:
 	@echo "Arrêt de MLflow..."
 	@pkill -f "mlflow ui" || echo "MLflow n'était pas en cours d'exécution"
 	@echo "✓ MLflow arrêté"
+
+# ==========================
+# Docker configuration
+# ==========================
+IMAGE_NAME = mohamedmarzouk17/mohamed_marzouk_4ds8_mlops
+CONTAINER_NAME = mlops_api
+PORT = 8000
+
+# ==========================
+# Docker commands
+# ==========================
+
+docker-build:
+	docker build -t $(IMAGE_NAME) .
+
+docker-run:
+	docker run -d -p $(PORT):$(PORT) --name $(CONTAINER_NAME) $(IMAGE_NAME)
+
+docker-stop:
+	docker stop $(CONTAINER_NAME) || true
+	docker rm $(CONTAINER_NAME) || true
+
+docker-push:
+	docker push $(IMAGE_NAME)

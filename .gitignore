@@ -1,7 +1,22 @@
+# MLflow
 mlruns/
-models/
-logs/
-venv/
+
+# Python
 __pycache__/
+*.pyc
+
+# Models & artifacts
+models/
 *.pkl
-*.db
+
+# Logs
+logs/
+
+# Virtual environments
+venv/
+.env/
+
+# Other local databases (optionnel)
+*.sqlite
+*.sqlite3
+mlflow.db

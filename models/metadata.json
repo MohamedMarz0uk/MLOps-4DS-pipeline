@@ -1,5 +1,5 @@
 {
-  "best_model_path": "models/logistic_regression_loan_model_20251209_134115.pkl",
+  "best_model_path": "models/logistic_regression_loan_model_20251215_165246.pkl",
   "best_accuracy": 0.8617886178861789,
-  "best_timestamp": "20251209_134115"
+  "best_timestamp": "20251215_165246"
 }

@@ -1,11 +1,12 @@
+import os
+import mlflow
 import warnings
 warnings.filterwarnings("ignore")
 
-import os
 os.environ["MLFLOW_TRACKING_URI"] = "file:./mlruns"
 os.environ["MLFLOW_ARTIFACT_URI"] = "./mlruns/artifacts"
 
-import mlflow
+
 from model_pipeline import (
     prepare_data,
     train_model,
@@ -23,9 +24,8 @@ def main():
     test_path = "data/test.csv"
 
     print("=== Pipeline de Prédiction de Prêts - Modèle Logistic Regression avec MLflow ===\n")
-
-    #mlflow.set_tracking_uri("sqlite:///mlflow.db")
     
+    #mlflow.set_tracking_uri("sqlite:///mlflow.db")
     mlflow.set_experiment("loan_prediction_experiment")
     
     # Démarrer un run MLflow
