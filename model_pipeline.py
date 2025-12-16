@@ -19,6 +19,16 @@ import mlflow
 import mlflow.sklearn
 from mlflow.models import infer_signature
 
+#elasticsearch
+from elasticsearch import Elasticsearch
+
+# Connexion Elasticsearch (Monitoring)
+es = Elasticsearch(
+    "http://localhost:9200",
+    headers={"Content-Type": "application/json"}
+)
+
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -233,6 +243,15 @@ def train_model(X_train, y_train, C=1.0, max_iter=1000, solver="lbfgs"):
     logger.info("Modèle de Régression Logistique entraîné avec succès")
     return model
 
+#Envoyer une métrique MLflow vers Elasticsearch pour monitoring Kibana.
+def log_metric_to_elasticsearch(run_id, metric_name, metric_value):
+    doc = {
+        "run_id": run_id,
+        "metric": metric_name,
+        "value": metric_value
+    }
+    es.index(index="mlflow-metrics", document=doc)
+
 
 def evaluate_model(model, X_test, y_test):
     """
@@ -267,6 +286,19 @@ def evaluate_model(model, X_test, y_test):
     logger.info(f"Precision: {precision:.4f}")
     logger.info(f"Recall: {recall:.4f}")
     logger.info(f"F1-Score: {f1:.4f}")
+    
+    # Récupérer le run MLflow actif
+    run = mlflow.active_run()
+
+    if run is not None:
+        run_id = run.info.run_id
+
+        # Envoyer les métriques vers Elasticsearch
+        log_metric_to_elasticsearch(run_id, "accuracy", accuracy)
+        log_metric_to_elasticsearch(run_id, "precision", precision)
+        log_metric_to_elasticsearch(run_id, "recall", recall)
+        log_metric_to_elasticsearch(run_id, "f1_score", f1)
+
     
     # Créer et sauvegarder la matrice de confusion
     cm = confusion_matrix(y_test, y_pred)

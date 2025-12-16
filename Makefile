@@ -109,3 +109,13 @@ docker-stop:
 
 docker-push:
 	docker push $(IMAGE_NAME)
+
+# ==========================
+# Monitoring (Elasticsearch & Kibana)
+# ==========================
+
+monitor-up:
+	docker compose up -d
+
+monitor-down:
+	docker compose down --volumes --remove-orphans
